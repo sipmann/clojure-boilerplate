@@ -62,9 +62,12 @@
   (flow "should create, edit, update and delete a user through the html forms"
 
     [database (state-flow.api/get-state :database)
-     new-page (state-flow.server/request! {:method :get :uri "/users/new"})
-     :let [cookie (session-cookie new-page)
-           token (csrf-token new-page)]
+     login-page (state-flow.server/request! {:method :get :uri "/login"})
+     :let [cookie (session-cookie login-page)]
+     _login-response (form-post "/login" cookie (csrf-token login-page)
+                                {:email "admin@admin.com" :password "admin"})
+     new-page (state-flow.server/request! {:method :get :uri "/users/new" :headers {"Cookie" cookie}})
+     :let [token (csrf-token new-page)]
      create-response (form-post "/users" cookie token {:name "Carlos Teste"
                                                        :email "carlos.teste@example.com"
                                                        :password "segredo123"
