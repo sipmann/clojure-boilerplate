@@ -10,7 +10,8 @@
         prismatic/schema-generators {:mvn/version "0.1.5"}
         
         selmer/selmer       {:mvn/version "1.12.50"}
-        org.mindrot/jbcrypt {:mvn/version "0.4"}}
+        org.mindrot/jbcrypt {:mvn/version "0.4"}
+        io.sentry/sentry    {:mvn/version "8.28.0"}}
 
  :aliases
  {:dev {:jvm-opts ["-Dfile.encoding=UTF-8"]}

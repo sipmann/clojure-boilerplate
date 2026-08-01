@@ -1,6 +1,7 @@
 (ns microservice-boilerplate.router
   (:require [com.stuartsierra.component :as component]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
+            [microservice-boilerplate.sentry :as sentry]
             [microservice-boilerplate.templates :as templates]
             [muuntaja.core :as m]
             [parenthesin.helpers.logs :as logs]
@@ -20,6 +21,10 @@
 (defn- coercion-error-handler [status]
   (fn [exception _request]
     (logs/log :error exception :coercion-errors (:errors (ex-data exception)))
+    ;; only the 500 case is our own bug (we produced a response that doesn't
+    ;; match its schema); a 400 is just a client sending a bad request
+    (when (= 500 status)
+      (sentry/capture-exception! exception))
     {:status status
      :body (if (= 400 status)
              (str "Invalid path or request parameters, with the following errors: "
@@ -43,6 +48,7 @@
 (defn- make-exception-info-handler [env]
   (fn [exception request]
     (logs/log :error exception "Server exception:" :exception exception)
+    (sentry/capture-exception! exception)
     (if (= env :dev)
       (dev-error-response request exception)
       {:status 500 :body "Internal error."})))

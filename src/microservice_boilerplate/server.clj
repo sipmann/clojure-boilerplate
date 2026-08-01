@@ -2,6 +2,7 @@
   (:require [com.stuartsierra.component :as component]
             [microservice-boilerplate.router :as router]
             [microservice-boilerplate.routes :as routes]
+            [microservice-boilerplate.sentry :as sentry]
             [parenthesin.components.config.aero :as config]
             [parenthesin.components.db.jdbc-hikari :as database]
             [parenthesin.components.http.clj-http :as http]
@@ -15,10 +16,11 @@
 (defn- build-system-map []
   (component/system-map
    :config (config/new-config)
+   :sentry (component/using (sentry/new-sentry) [:config])
    :http (http/new-http)
    :router (component/using (router/new-router routes/routes) [:config])
    :database (component/using (database/new-database) [:config])
-   :webserver (component/using (webserver/new-webserver {:io.pedestal.http/enable-session {}}) [:config :http :router :database])))
+   :webserver (component/using (webserver/new-webserver {:io.pedestal.http/enable-session {}}) [:config :http :router :database :sentry])))
 
 (defn start-system! [system-map]
   (logs/setup :info :auto)
