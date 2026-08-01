@@ -136,7 +136,7 @@
     [admin-login-page (state-flow.server/request! {:method :get :uri "/login"})
      :let [admin-cookie (session-cookie admin-login-page)]
      _admin-login (form-post "/login" admin-cookie (csrf-token admin-login-page)
-                            {:email "admin@admin.com" :password "admin"})
+                             {:email "admin@admin.com" :password "admin"})
      new-page (state-flow.server/request! {:method :get :uri "/users/new" :headers {"Cookie" admin-cookie}})
      _create-response (form-post "/users" admin-cookie (csrf-token new-page)
                                  {:name "Non Admin"
