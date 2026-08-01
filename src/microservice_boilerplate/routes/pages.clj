@@ -1,11 +1,18 @@
 (ns microservice-boilerplate.routes.pages
   (:require [io.pedestal.http.csrf :as csrf]
+            [microservice-boilerplate.interceptors.authentication :as interceptors.authentication]
             [microservice-boilerplate.ports.http-in.pages :as ports.http-in.pages]
             [microservice-boilerplate.schemas.wire-in :as schemas.wire-in]
             [schema.core :as s]))
 
 (def routes
-  [["/home" {:get {:summary "home page"
+  [["/" {:interceptors [(into {} (csrf/anti-forgery))]
+         :get {:summary "root page (redirects to /login or /home)"
+               :responses {200 {:body s/Str}
+                           500 {:body s/Str}}
+               :handler ports.http-in.pages/login}}]
+
+   ["/home" {:get {:summary "home page"
                    :responses {200 {:body s/Str}
                                500 {:body s/Str}}
                    :handler ports.http-in.pages/home}}]
@@ -27,7 +34,9 @@
                      :handler ports.http-in.pages/logout}}]
 
    ["/users"
-    {:interceptors [(into {} (csrf/anti-forgery))]}
+    {:interceptors [interceptors.authentication/require-login
+                    (interceptors.authentication/require-role "admin")
+                    (into {} (csrf/anti-forgery))]}
 
     ["" {:get {:summary "list all users alphabetically"
                :responses {200 {:body s/Str}
