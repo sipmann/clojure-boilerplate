@@ -126,3 +126,31 @@
 
     (match? {:status 200 :body #"removido com sucesso"}
             after-delete-list)))
+
+(defflow flow-integration-users-forbidden-for-non-admin-test
+  {:init (util/start-system! create-and-start-components!)
+   :cleanup util/stop-system!
+   :fail-fast? true}
+  (flow "a logged-in user without the admin role can't reach /users"
+
+    [admin-login-page (state-flow.server/request! {:method :get :uri "/login"})
+     :let [admin-cookie (session-cookie admin-login-page)]
+     _admin-login (form-post "/login" admin-cookie (csrf-token admin-login-page)
+                            {:email "admin@admin.com" :password "admin"})
+     new-page (state-flow.server/request! {:method :get :uri "/users/new" :headers {"Cookie" admin-cookie}})
+     _create-response (form-post "/users" admin-cookie (csrf-token new-page)
+                                 {:name "Non Admin"
+                                  :email "non.admin@example.com"
+                                  :password "segredo123"
+                                  :role "user"})
+
+     non-admin-login-page (state-flow.server/request! {:method :get :uri "/login"})
+     :let [non-admin-cookie (session-cookie non-admin-login-page)]
+     _non-admin-login (form-post "/login" non-admin-cookie (csrf-token non-admin-login-page)
+                                 {:email "non.admin@example.com" :password "segredo123"})
+     users-as-non-admin (state-flow.server/request! {:method :get
+                                                     :uri    "/users"
+                                                     :headers {"Cookie" non-admin-cookie}})]
+
+    (match? {:status 403}
+            users-as-non-admin)))
