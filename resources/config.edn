@@ -10,6 +10,10 @@
 
  ;; SENTRY_DSN is unset in dev/test on purpose: the sentry component treats a
  ;; missing dsn as "stay disabled" instead of erroring, so local runs and the
- ;; test suite never need Sentry configured.
- :sentry {:dsn #or [#env SENTRY_DSN nil]}}
+ ;; test suite never need Sentry configured. traces-sample-rate controls
+ ;; Performance Monitoring (what fraction of requests get traced); it's only
+ ;; read when a dsn is set. 1.0 traces everything -- lower it (e.g. via
+ ;; SENTRY_TRACES_SAMPLE_RATE=0.2) if trace volume becomes a cost concern.
+ :sentry {:dsn #or [#env SENTRY_DSN nil]
+          :traces-sample-rate #or [#env SENTRY_TRACES_SAMPLE_RATE 1.0]}}
 
