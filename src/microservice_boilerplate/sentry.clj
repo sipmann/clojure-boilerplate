@@ -66,6 +66,27 @@
                          SpanStatus/INTERNAL_ERROR
                          SpanStatus/OK)))
 
+(defn traced-query!
+  "Runs `f` (a thunk executing one JDBC statement) inside a Sentry child span
+  (op \"db.sql.query\", description `sql`) nested under whatever
+  transaction/span is currently bound to scope -- the HTTP/job transactions
+  started by start-transaction! above. Runs `f` untraced when there's no
+  active span, since Sentry/getSpan returns nil both when Sentry was never
+  initialized (no SENTRY_DSN) and when called outside a transaction."
+  [sql f]
+  (if-let [parent (Sentry/getSpan)]
+    (let [span (.startChild parent "db.sql.query" ^String sql)]
+      (try
+        (let [result (f)]
+          (.setStatus span SpanStatus/OK)
+          result)
+        (catch Exception e
+          (.setStatus span SpanStatus/INTERNAL_ERROR)
+          (throw e))
+        (finally
+          (.finish span))))
+    (f)))
+
 (defn wrap-job-handler
   "Wraps a background job handler `(fn [job-type payload] ...)` (e.g. a
   proletarian job handler, if this project adds one) so any exception it

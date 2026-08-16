@@ -1,5 +1,6 @@
 (ns microservice-boilerplate.server
   (:require [com.stuartsierra.component :as component]
+            [microservice-boilerplate.database.traced :as database.traced]
             [microservice-boilerplate.router :as router]
             [microservice-boilerplate.routes :as routes]
             [microservice-boilerplate.sentry :as sentry]
@@ -19,7 +20,8 @@
    :sentry (component/using (sentry/new-sentry) [:config])
    :http (http/new-http)
    :router (component/using (router/new-router routes/routes) [:config])
-   :database (component/using (database/new-database) [:config])
+   :raw-database (component/using (database/new-database) [:config])
+   :database (component/using (database.traced/new-traced-database) [:raw-database])
    :webserver (component/using (webserver/new-webserver {:io.pedestal.http/enable-session {}}) [:config :http :router :database :sentry])))
 
 (defn start-system! [system-map]
