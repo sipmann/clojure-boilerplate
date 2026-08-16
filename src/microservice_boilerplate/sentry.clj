@@ -1,7 +1,11 @@
 (ns microservice-boilerplate.sentry
   (:require [com.stuartsierra.component :as component]
             [parenthesin.helpers.logs :as logs])
-  (:import (io.sentry Sentry SentryOptions SpanStatus TransactionOptions)))
+  (:import (io.sentry
+            Sentry
+            SentryOptions
+            SpanStatus
+            TransactionOptions)))
 
 (defrecord SentryComponent [config]
   component/Lifecycle
@@ -43,7 +47,7 @@
   SENTRY_DSN), same as capture-exception!."
   [name operation]
   (Sentry/startTransaction name operation (doto (TransactionOptions.)
-                                             (.setBindToScope true))))
+                                            (.setBindToScope true))))
 
 (defn finish-transaction!
   "Finishes `transaction`, marking it OK or INTERNAL_ERROR depending on
@@ -51,8 +55,8 @@
   error."
   [transaction status]
   (.finish transaction (if (and status (>= status 500))
-                          SpanStatus/INTERNAL_ERROR
-                          SpanStatus/OK)))
+                         SpanStatus/INTERNAL_ERROR
+                         SpanStatus/OK)))
 
 (defn wrap-job-handler
   "Wraps a background job handler `(fn [job-type payload] ...)` (e.g. a
