@@ -1,5 +1,6 @@
 (ns microservice-boilerplate.router
-  (:require [com.stuartsierra.component :as component]
+  (:require [clojure.string :as str]
+            [com.stuartsierra.component :as component]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [microservice-boilerplate.sentry :as sentry]
             [microservice-boilerplate.templates :as templates]
@@ -53,6 +54,30 @@
       (dev-error-response request exception)
       {:status 500 :body "Internal error."})))
 
+;; Route template (e.g. "/api/users/:id") rather than the raw URI, so
+;; requests for the same route group into one Sentry transaction name
+;; instead of fragmenting per path-param value.
+(defn- transaction-name [request]
+  (let [method   (-> request :request-method name str/upper-case)
+        template (or (get-in request [:reitit.core/match :template]) (:uri request))]
+    (str method " " template)))
+
+;; Wraps the rest of the interceptor chain in a Sentry performance-monitoring
+;; transaction. Placed right after session/flash so its :enter runs before
+;; (and its :leave after) everything else, including exception-interceptor --
+;; by the time :leave runs, exceptions have already been turned into a
+;; response, so the transaction always sees a final status. reitit's routing
+;; interceptor injects :reitit.core/match into the request before this queue
+;; runs, so transaction-name can already read the matched route template.
+(defn- tracing-interceptor []
+  {:name  ::tracing
+   :enter (fn [ctx]
+            (assoc ctx ::transaction
+                   (sentry/start-transaction! (transaction-name (:request ctx)) "http.server")))
+   :leave (fn [ctx]
+            (sentry/finish-transaction! (::transaction ctx) (get-in ctx [:response :status]))
+            ctx)})
+
 (defn- router-settings [env]
   {:exception pretty/exception
    :data {:coercion reitit.schema/coercion
@@ -61,6 +86,7 @@
                          (assoc-in [:formats "application/json" :decoder-opts :bigdecimals] true)))
           :interceptors [(select-keys (ring-middlewares/session) [:name :enter :leave])
                          (select-keys (ring-middlewares/flash) [:name :enter :leave])
+                         (tracing-interceptor)
                          swagger/swagger-feature
                          (parameters/parameters-interceptor)
                          (muuntaja/format-negotiate-interceptor)

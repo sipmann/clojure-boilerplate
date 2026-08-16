@@ -141,9 +141,11 @@ docker-compose -f docker/docker-compose.yml stop
 ## Running the server
 First you need to have the database running, for this you can use the docker command in the step above.
 
-Error reporting to [Sentry](https://sentry.io) is opt-in: set the `SENTRY_DSN` env var (and optionally
-`APP_ENV`, already used for other config, to tag the environment) to turn it on. With no `SENTRY_DSN`,
-the sentry component stays disabled and nothing is sent anywhere -- this is the default for dev and tests.
+Error reporting and performance monitoring (tracing) via [Sentry](https://sentry.io) are opt-in: set the
+`SENTRY_DSN` env var (and optionally `APP_ENV`, already used for other config, to tag the environment) to
+turn them on. With no `SENTRY_DSN`, the sentry component stays disabled and nothing is sent anywhere --
+this is the default for dev and tests. `SENTRY_TRACES_SAMPLE_RATE` (default `1.0`, i.e. trace everything)
+controls what fraction of HTTP requests get traced; lower it if trace volume becomes a cost concern.
 
 ### Repl
 You can start a repl open and evaluate the file `src/microservice_boilerplate/server.clj` and execute following code:
@@ -184,7 +186,7 @@ java -jar target/service.jar
 - [selmer](https://github.com/yogthos/Selmer) Django/Jinja-inspired HTML templating
 - [jbcrypt](https://github.com/jeremyh/jBCrypt) Password hashing (bcrypt)
 - [tools.build](https://github.com/clojure/tools.build) Clojure builds as Clojure programs
-- [sentry-java](https://github.com/getsentry/sentry-java) Error tracking (opt-in via `SENTRY_DSN`)
+- [sentry-java](https://github.com/getsentry/sentry-java) Error tracking and performance monitoring (opt-in via `SENTRY_DSN`)
 
 ### Tests & Checks
 - [kaocha](https://github.com/lambdaisland/kaocha) Test runner
