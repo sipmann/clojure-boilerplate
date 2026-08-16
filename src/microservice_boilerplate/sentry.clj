@@ -49,6 +49,14 @@
   (Sentry/startTransaction name operation (doto (TransactionOptions.)
                                             (.setBindToScope true))))
 
+(defn tag-transaction!
+  "Sets a string tag on `transaction` (or any span) for `k` -> `v`, coercing
+  `v` to a string. No-op when `v` is nil -- Sentry tags can't be nil, and
+  fields like user-id are absent on anonymous requests."
+  [transaction k v]
+  (when v
+    (.setTag transaction k (str v))))
+
 (defn finish-transaction!
   "Finishes `transaction`, marking it OK or INTERNAL_ERROR depending on
   whether `status` (an HTTP status code, may be nil) indicates a server

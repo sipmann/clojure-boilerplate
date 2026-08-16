@@ -72,8 +72,13 @@
 (defn- tracing-interceptor []
   {:name  ::tracing
    :enter (fn [ctx]
-            (assoc ctx ::transaction
-                   (sentry/start-transaction! (transaction-name (:request ctx)) "http.server")))
+            (let [request (:request ctx)
+                  transaction (sentry/start-transaction! (transaction-name request) "http.server")
+                  user (get-in request [:session :user])]
+              ;; user-id is absent on anonymous routes (/, /login) -- tag-transaction!
+              ;; no-ops on nil, so this is safe.
+              (sentry/tag-transaction! transaction "user_id" (:id user))
+              (assoc ctx ::transaction transaction)))
    :leave (fn [ctx]
             (sentry/finish-transaction! (::transaction ctx) (get-in ctx [:response :status]))
             ctx)})
